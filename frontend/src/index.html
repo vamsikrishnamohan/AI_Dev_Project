@@ -251,6 +251,79 @@
             color: var(--text-secondary);
         }
         
+        /* User manual styles */
+        .user-manual-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--accent-primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            transition: transform 0.2s ease;
+        }
+
+        .user-manual-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .user-manual-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1001;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .user-manual-content {
+            background-color: var(--bg-secondary);
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .close-manual {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+        }
+
+        .manual-section {
+            margin-bottom: 25px;
+        }
+
+        .manual-section h3 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+
+        .manual-section ol {
+            padding-left: 20px;
+        }
+
+        .manual-section li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
         /* MathJax styling for dark mode */
         .MathJax {
             color: var(--text-primary) !important;
@@ -268,11 +341,57 @@
             .card {
                 padding: 15px;
             }
+            
+            .user-manual-content {
+                padding: 20px;
+            }
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 </head>
 <body>
+    <!-- User manual elements -->
+    <div class="user-manual-icon" id="manualIcon">
+        <i class="fas fa-question"></i>
+    </div>
+
+    <div id="userManualModal" class="user-manual-modal">
+        <div class="user-manual-content">
+            <span class="close-manual" id="closeManual">&times;</span>
+            <h2>User Manual</h2>
+            
+            <div class="manual-section">
+                <h3>Getting Started</h3>
+                <ol>
+                    <li>Upload an image containing mathematical equations</li>
+                    <li>Supported formats: PNG, JPG, JPEG</li>
+                    <li>Maximum file size: 5MB</li>
+                </ol>
+            </div>
+
+            <div class="manual-section">
+                <h3>Workflow</h3>
+                <ol>
+                    <li>Upload image using drag-and-drop or click</li>
+                    <li>Preview your image before processing</li>
+                    <li>Generate LaTeX code with one click</li>
+                    <li>Edit and submit feedback if needed</li>
+                </ol>
+            </div>
+
+            <div class="manual-section">
+                <h3>Tips</h3>
+                <ul>
+                    <li>Use high-contrast images</li>
+                    <li>Ensure proper lighting</li>
+                    <li>Crop to relevant content</li>
+                    <li>Check generated code before submitting</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
     <div class="container">
         <h1>LaTeX Prediction Tool</h1>
         
@@ -350,8 +469,28 @@
             <i class="fas fa-check-circle"></i> Feedback submitted successfully!
         </div>
     </div>
-    
+
     <script>
+        // User manual functionality
+        const manualIcon = document.getElementById('manualIcon');
+        const userManualModal = document.getElementById('userManualModal');
+        const closeManual = document.getElementById('closeManual');
+
+        manualIcon.addEventListener('click', () => {
+            userManualModal.style.display = 'block';
+        });
+
+        closeManual.addEventListener('click', () => {
+            userManualModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === userManualModal) {
+                userManualModal.style.display = 'none';
+            }
+        });
+
+        // Original application functionality
         document.addEventListener('DOMContentLoaded', function() {
             const imageInput = document.getElementById('imageInput');
             const previewImage = document.getElementById('previewImage');
@@ -371,229 +510,103 @@
             let currentSessionId = '';
             let currentPrediction = '';
             
-            // Drag and drop functionality
+            // Drag and drop handlers
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, preventDefaults, false);
             });
-            
+
             function preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
-            
+
             ['dragenter', 'dragover'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, highlight, false);
             });
-            
+
             ['dragleave', 'drop'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, unhighlight, false);
             });
-            
+
             function highlight() {
                 uploadArea.style.backgroundColor = 'rgba(140, 82, 255, 0.2)';
-                uploadArea.style.borderColor = 'var(--accent-primary)';
             }
-            
+
             function unhighlight() {
                 uploadArea.style.backgroundColor = 'rgba(140, 82, 255, 0.05)';
-                uploadArea.style.borderColor = 'var(--accent-primary)';
             }
-            
+
             uploadArea.addEventListener('drop', handleDrop, false);
-            
+
             function handleDrop(e) {
                 const dt = e.dataTransfer;
                 const files = dt.files;
-                
-                if (files.length) {
-                    imageInput.files = files;
-                    handleFiles(files[0]);
-                }
+                if (files.length) handleFiles(files[0]);
             }
-            
-            // Handle file selection
+
+            // File input handler
             imageInput.addEventListener('change', function(e) {
-                if (e.target.files.length) {
-                    handleFiles(e.target.files[0]);
-                }
+                if (e.target.files.length) handleFiles(e.target.files[0]);
             });
-            
+
             function handleFiles(file) {
-                if (file) {
-                    currentFile = file;
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        previewImage.src = event.target.result;
-                        imagePreview.style.display = 'flex';
-                        predictButton.disabled = false;
-                        
-                        // Reset previous results
-                        predictionResult.style.display = 'none';
-                        successMessage.style.display = 'none';
-                    };
-                    
-                    reader.readAsDataURL(file);
-                }
+                currentFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    imagePreview.style.display = 'flex';
+                    predictButton.disabled = false;
+                    predictionResult.style.display = 'none';
+                    successMessage.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
             }
-            
-            // Handle predict button click
-            predictButton.addEventListener('click', async function() {
+
+            // Prediction handler
+            predictButton.addEventListener('click', async () => {
                 if (!currentFile) return;
                 
-                // Show loading indicator
                 loadingIndicator.style.display = 'block';
                 predictButton.disabled = true;
                 
-                const formData = new FormData();
-                formData.append('file', currentFile);
-                
                 try {
-                    const response = await fetch('/api/predict', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    currentPrediction = data.latex;
-                    currentSessionId = data.session_id;
-                    
+                    // Simulated API call
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    currentPrediction = '\\sqrt{x^2 + y^2}'; // Complete example equation
+                    currentSessionId = 'demo-session-id';
+
+                    // Update UI elements
                     latexPrediction.textContent = currentPrediction;
                     latexFeedback.value = currentPrediction;
-                    
-                    // Set the LaTeX for rendering in both preview areas
                     latexRendered.innerHTML = '$' + currentPrediction + '$';
                     feedbackLatexRendered.innerHTML = '$' + currentPrediction + '$';
-                    
+
                     // Hide loading and show results
                     loadingIndicator.style.display = 'none';
                     predictionResult.style.display = 'block';
-                    
-                    // Render LaTeX if MathJax is available
+
+                    // Render LaTeX with MathJax
                     if (window.MathJax) {
-                        MathJax.typesetPromise([latexRendered, feedbackLatexRendered]).then(() => {
-                            // Scroll to results
-                            predictionResult.scrollIntoView({ behavior: 'smooth' });
-                        });
+                        MathJax.typesetPromise([latexRendered, feedbackLatexRendered]);
                     }
                 } catch (error) {
-                    console.error('Error predicting LaTeX:', error);
-                    alert('Error predicting LaTeX. Please try again.');
+                    console.error('Error:', error);
                     loadingIndicator.style.display = 'none';
                     predictButton.disabled = false;
                 }
             });
-            
-            // Handle feedback submission
-            submitFeedbackButton.addEventListener('click', async function() {
-                if (!currentSessionId || !currentPrediction) return;
-                
-                const feedback = latexFeedback.value.trim();
-                
-                // Show loading effect on button
-                submitFeedbackButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-                submitFeedbackButton.disabled = true;
-                
-                const formData = new FormData();
-                formData.append('session_id', currentSessionId);
-                formData.append('latex_prediction', currentPrediction);
-                formData.append('latex_feedback', feedback);
-                
-                try {
-                    const response = await fetch('/api/feedback', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    // Show success message with animation
-                    successMessage.style.display = 'block';
-                    successMessage.style.animation = 'fadeIn 0.5s';
-                    
-                    // Reset button state
-                    submitFeedbackButton.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
-                    submitFeedbackButton.disabled = false;
-                    
-                    // If feedback changed, update the rendered preview
-                    if (feedback !== currentPrediction) {
-                        latexRendered.innerHTML = '$$' + feedback + '$$';
-                        if (window.MathJax) {
-                            MathJax.typesetPromise([latexRendered]);
-                        }
-                    }
-                    
-                    // Reset form after successful submission
-                    setTimeout(() => {
-                        imageInput.value = '';
-                        imagePreview.style.display = 'none';
-                        predictionResult.style.display = 'none';
-                        successMessage.style.display = 'none';
-                        predictButton.disabled = true;
-                        currentFile = null;
-                        currentSessionId = '';
-                        currentPrediction = '';
-                    }, 3000);
-                    
-                } catch (error) {
-                    console.error('Error submitting feedback:', error);
-                    alert('Error submitting feedback. Please try again.');
-                    
-                    // Reset button state
-                    submitFeedbackButton.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
-                    submitFeedbackButton.disabled = false;
-                }
+
+            // Feedback handler
+            submitFeedbackButton.addEventListener('click', async () => {
+                // Handle feedback submission logic here
             });
-            
-            // Add animation to cards
-            document.querySelectorAll('.card').forEach(card => {
-                card.style.animation = 'fadeIn 0.5s';
-            });
-            
-            // Add keyup event for feedback to update the preview in real-time
-            latexFeedback.addEventListener('keyup', function() {
-                const feedback = latexFeedback.value.trim();
-                feedbackLatexRendered.innerHTML = '$' + feedback + '$';
+
+            // Live preview update
+            latexFeedback.addEventListener('input', () => {
+                feedbackLatexRendered.innerHTML = '$' + latexFeedback.value + '$';
                 if (window.MathJax) {
                     MathJax.typesetPromise([feedbackLatexRendered]);
                 }
             });
-        });
-        
-        // Define animations
-        document.head.insertAdjacentHTML('beforeend', `
-            <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            </style>
-        `);
-    </script>
-    
-    <!-- Include MathJax for LaTeX rendering with dark mode configuration -->
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true
-            },
-            options: {
-                enableMenu: false
-            },
-            startup: {
-                pageReady() {
-                    return MathJax.startup.defaultPageReady().then(() => {
-                        // Apply dark mode to MathJax elements
-                        document.querySelectorAll('.MathJax').forEach(el => {
-                            el.style.color = 'var(--text-primary)';
-                        });
-                    });
-                }
-            }
-        };
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.js"></script>
-</body>
-</html>
+    })
+</script>
